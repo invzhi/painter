@@ -1,0 +1,7 @@
+{{ define "content" }}
+<form method="post">
+  <input type="text" name="username">
+  <input type="submit" value="attend">
+  <input type="hidden" name="token" value="{{.}}">
+</form>
+{{ end }}
