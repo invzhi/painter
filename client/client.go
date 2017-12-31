@@ -23,7 +23,7 @@ func New(h *hub, conn *websocket.Conn, username string) *client {
 		send:     make(chan []byte),
 		username: username,
 	}
-	h.Register <- c
+	h.register <- c
 	return c
 }
 

@@ -1,8 +1,10 @@
 package dashboard
 
 type hub struct {
-	Broadcast  chan []byte
-	Register   chan *dashboard
+	// Broadcast send messages to all dashboard.
+	Broadcast chan []byte
+
+	register   chan *dashboard
 	unregister chan *dashboard
 	dashboards map[*dashboard]struct{}
 }
@@ -11,24 +13,26 @@ type hub struct {
 func NewHub() *hub {
 	h := &hub{
 		Broadcast:  make(chan []byte),
-		Register:   make(chan *dashboard),
+		register:   make(chan *dashboard),
 		unregister: make(chan *dashboard),
 		dashboards: make(map[*dashboard]struct{}),
 	}
-	go func() {
-		for {
-			select {
-			case dashboard := <-h.Register:
-				h.dashboards[dashboard] = struct{}{}
-			case dashboard := <-h.unregister:
-				close(dashboard.send)
-				delete(h.dashboards, dashboard)
-			case message := <-h.Broadcast:
-				for dashboard := range h.dashboards {
-					dashboard.send <- message
-				}
-			}
-		}
-	}()
+	go h.run()
 	return h
+}
+
+func (h *hub) run() {
+	for {
+		select {
+		case message := <-h.Broadcast:
+			for dashboard := range h.dashboards {
+				dashboard.send <- message
+			}
+		case dashboard := <-h.register:
+			h.dashboards[dashboard] = struct{}{}
+		case dashboard := <-h.unregister:
+			close(dashboard.send)
+			delete(h.dashboards, dashboard)
+		}
+	}
 }

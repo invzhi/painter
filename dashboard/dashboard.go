@@ -20,7 +20,7 @@ func New(h *hub, conn *websocket.Conn, bufferSize int) *dashboard {
 		conn: conn,
 		send: make(chan []byte, bufferSize),
 	}
-	h.Register <- d
+	h.register <- d
 	return d
 }
 
