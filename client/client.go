@@ -5,14 +5,18 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/invzhi/shaker/message"
 )
 
 type client struct {
 	hub      *hub
 	conn     *websocket.Conn
 	send     chan []byte
-	times    int32
 	username string
+
+	// Times is shake score
+	Times int32
 }
 
 // New allocates a new client and register it to client hub.
@@ -32,37 +36,32 @@ const (
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
-
-	shakeMessage = "shake"
-	joinMessage  = "join"
-	endMessage   = "end"
 )
 
 // ReadTo read message from client and send to channel
-func (c *client) ReadTo(send chan []byte) {
+func (c *client) ReadTo(send chan *message.Msg) {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
+	pongHandler := func(_ string) error {
+		log.Print("pong received.")
+		return c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	}
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(_ string) error {
-		log.Print("pong received")
-		return c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	})
+	c.conn.SetPongHandler(pongHandler)
+
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Print("websocket close going away: ", err)
+				log.Print("websocket unexpected close error: ", err)
 			}
 			break
 		}
-		if string(message) == shakeMessage {
-			c.times++
-		}
-		// log.Print(c.username, " send: ", string(message))
-		send <- []byte(c.username)
+		c.Times++
+		send <- message.New(c.username, message.Shake)
 	}
 }
 
@@ -75,20 +74,20 @@ func (c *client) Write() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
+		case msg, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, nil)
 				return
 			}
 
-			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Print("write message error: ", err)
+			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				log.Printf("cannot write text message '%s': %v", msg, err)
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Print("write ping message error: ", err)
+				log.Print("cannot write ping message: ", err)
 				return
 			}
 		}

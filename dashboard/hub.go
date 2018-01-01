@@ -1,8 +1,10 @@
 package dashboard
 
+import "github.com/invzhi/shaker/message"
+
 type hub struct {
 	// Broadcast send messages to all dashboard.
-	Broadcast chan []byte
+	Broadcast chan *message.Msg
 
 	register   chan *dashboard
 	unregister chan *dashboard
@@ -12,7 +14,7 @@ type hub struct {
 // NewHub allocates a new hub.
 func NewHub() *hub {
 	h := &hub{
-		Broadcast:  make(chan []byte),
+		Broadcast:  make(chan *message.Msg),
 		register:   make(chan *dashboard),
 		unregister: make(chan *dashboard),
 		dashboards: make(map[*dashboard]struct{}),
@@ -24,9 +26,9 @@ func NewHub() *hub {
 func (h *hub) run() {
 	for {
 		select {
-		case message := <-h.Broadcast:
+		case msg := <-h.Broadcast:
 			for dashboard := range h.dashboards {
-				dashboard.send <- message
+				dashboard.send <- msg
 			}
 		case dashboard := <-h.register:
 			h.dashboards[dashboard] = struct{}{}
