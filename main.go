@@ -9,15 +9,15 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/invzhi/shaker/client"
-	"github.com/invzhi/shaker/dashboard"
 	"github.com/invzhi/shaker/message"
+	"github.com/invzhi/shaker/monitor"
 )
 
 const bufferSize = 256
 
 var (
-	globalClientHub    = client.NewHub()
-	globalDashboardHub = dashboard.NewHub()
+	globalClientHub  = client.NewHub()
+	globalMonitorHub = monitor.NewHub()
 
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -32,10 +32,10 @@ func main() {
 	}
 
 	http.HandleFunc("/", start)
-	http.HandleFunc("/dashboard", monitor)
+	http.HandleFunc("/monitor", monitoring)
 
 	http.HandleFunc("/ws", clientWebSocket)
-	http.HandleFunc("/dashboardws", dashboardWebSocket)
+	http.HandleFunc("/monitorws", monitorWebSocket)
 
 	log.Fatal(http.ListenAndServe(port, nil))
 }
@@ -47,7 +47,7 @@ func start(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func monitor(w http.ResponseWriter, r *http.Request) {
+func monitoring(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("templates/base.html", "templates/monitor.html"))
 	if err := t.Execute(w, globalClientHub.Clients); err != nil {
 		log.Print("monitor template execute error: ", err)
@@ -69,19 +69,19 @@ func clientWebSocket(w http.ResponseWriter, r *http.Request) {
 	username := string(msg)
 
 	c := client.New(globalClientHub, conn, username)
-	globalDashboardHub.Broadcast <- message.New(username, message.Join)
+	globalMonitorHub.Broadcast <- message.New(username, message.Join)
 
-	go c.ReadTo(globalDashboardHub.Broadcast)
+	go c.ReadTo(globalMonitorHub.Broadcast)
 	go c.Write()
 }
 
-func dashboardWebSocket(w http.ResponseWriter, r *http.Request) {
+func monitorWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("monitor cannot upgrade to websocket: ", err)
 		return
 	}
-	d := dashboard.New(globalDashboardHub, conn, bufferSize)
+	d := monitor.New(globalMonitorHub, conn, bufferSize)
 
 	// update sync
 
