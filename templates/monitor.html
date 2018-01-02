@@ -1,8 +1,10 @@
 {{ define "title" }}monitor - shaker{{ end }}
 {{ define "content" }}
+<p id="tips"></p>
+
 <ul id="list">
   {{ range $username, $client := . }}
-    <li>{{ $username }}: <span id="{{ $username }}">{{ $client.Times }}</span></li>
+    <li><label>{{ $username }}</label><span id="{{ $username }}">{{ $client.Times }}</span></li>
   {{ end }}
 </ul>
 
