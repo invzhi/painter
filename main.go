@@ -72,6 +72,7 @@ func clientWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username := string(msg)
+	log.Print("join: ", username)
 
 	c := client.New(globalClientHub, conn, username)
 	globalMonitorHub.Broadcast <- message.New(username, message.Join)
@@ -88,7 +89,7 @@ func monitorWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	m := monitor.New(globalMonitorHub, conn, bufferSize)
 
-	// update sync
+	log.Print("monitoring")
 
 	go m.ReadTo(globalClientHub.Broadcast)
 	go m.Write()
