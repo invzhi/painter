@@ -25,17 +25,19 @@ var (
 	}
 )
 
-func main() {
-	port := ":8080"
-	if len(os.Args) == 2 {
-		port = os.Args[1]
-	}
-
+func init() {
 	http.HandleFunc("/", start)
 	http.HandleFunc("/monitor", monitoring)
 
 	http.HandleFunc("/ws", clientWebSocket)
 	http.HandleFunc("/monitorws", monitorWebSocket)
+}
+
+func main() {
+	port := ":8080"
+	if len(os.Args) == 2 {
+		port = os.Args[1]
+	}
 
 	log.Fatal(http.ListenAndServe(port, nil))
 }
@@ -81,10 +83,10 @@ func monitorWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Print("monitor cannot upgrade to websocket: ", err)
 		return
 	}
-	d := monitor.New(globalMonitorHub, conn, bufferSize)
+	m := monitor.New(globalMonitorHub, conn, bufferSize)
 
 	// update sync
 
-	go d.ReadTo(globalClientHub.Broadcast)
-	go d.Write()
+	go m.ReadTo(globalClientHub.Broadcast)
+	go m.Write()
 }
