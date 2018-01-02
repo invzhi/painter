@@ -8,7 +8,12 @@ window.onload = function() {
     conn.onopen = function(event) {
       console.log('websocket opened.');
       document.getElementById('start').onclick = function() { conn.send('start'); };
-      document.getElementById('end').onclick = function() { conn.send('end'); };
+      document.getElementById('end').onclick = function() {
+        conn.send('end');
+        conn.onmessage = function(event) {
+          console.log(event.data);
+        }
+      };
     };
 
     conn.onclose = function(event) {

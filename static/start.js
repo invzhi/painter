@@ -16,7 +16,7 @@ window.onload = function() {
         if (username.value) {
           conn.send(username.value);
           tips.innerHTML = 'You have a name: ' + username.value;
-          number = document.createElement('b');
+          number = document.createElement('h2');
           number.innerHTML = 0;
           document.getElementsByTagName('body')[0].insertBefore(number, form);
           form.remove();
