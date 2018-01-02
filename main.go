@@ -26,6 +26,9 @@ var (
 )
 
 func init() {
+	staticFileServer := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
+
 	http.HandleFunc("/", start)
 	http.HandleFunc("/monitor", monitoring)
 
